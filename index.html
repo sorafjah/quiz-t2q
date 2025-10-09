@@ -221,15 +221,20 @@
         // --- Firebase初期化 ---
         async function initializeFirebase() {
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                // ユーザーから提供されたFirebase設定情報を直接記述します
+                const firebaseConfig = {
+                  apiKey: "AIzaSyDwCD9JK4dahhbNW9ChLKDR6EmWecJbZuA",
+                  authDomain: "quiz-t2q.firebaseapp.com",
+                  projectId: "quiz-t2q",
+                  storageBucket: "quiz-t2q.appspot.com", // firebasestorage.app ではなく .appspot.com が一般的です
+                  messagingSenderId: "1035883523561",
+                  appId: "1:1035883523561:web:819c8e84be99bfc1ff2f78",
+                  measurementId: "G-J6JCMZN14J"
+                };
 
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase設定がありません。");
-                    showMessage("Firebase設定エラー", 5000);
-                    return;
-                }
+                // 実行環境用の変数はフォールバックとして残します
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -543,3 +548,4 @@
     </script>
 </body>
 </html>
+
