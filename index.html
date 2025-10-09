@@ -191,12 +191,12 @@
         const createNewQuizBtn = document.getElementById('create-new-quiz-btn');
         const quizNameInputHome = document.getElementById('quiz-name-input-home');
         const startQuizBtn = document.getElementById('start-quiz-btn');
-        const editQuizBtn = document.getElementById('edit-quiz-btn'); // 編集ボタンを追加
+        const editQuizBtn = document.getElementById('edit-quiz-btn'); 
         
         // 編集画面
         const quizNameEdit = document.getElementById('quiz-name-edit');
         const jsonInput = document.getElementById('json-input');
-        const imageInputsContainer = document.getElementById('image-inputs-container'); // 動的生成先のコンテナ
+        const imageInputsContainer = document.getElementById('image-inputs-container');
         const saveQuizBtn = document.getElementById('save-quiz-btn');
         const backToHomeBtn = document.getElementById('back-to-home-btn');
 
@@ -279,7 +279,7 @@
                 showScreen('edit');
             });
             startQuizBtn.addEventListener('click', loadAndStartQuiz);
-            editQuizBtn.addEventListener('click', loadQuizForEditing); // 編集ボタンのイベントリスナー
+            editQuizBtn.addEventListener('click', loadQuizForEditing);
             saveQuizBtn.addEventListener('click', saveQuiz);
             backToHomeBtn.addEventListener('click', () => showScreen('home'));
             quizBackToHomeBtn.addEventListener('click', () => {
@@ -298,6 +298,9 @@
             imageInputsContainer.innerHTML = '<p class="text-center text-gray-500">JSONを貼り付けると、ここに画像URLの入力欄が表示されます。</p>';
         }
 
+        /**
+         * 貼り付けられたJSONを解析し、形式を自動補正する
+         */
         function handleJsonInputChange() {
             const jsonText = jsonInput.value.trim();
             if (!jsonText) {
@@ -305,7 +308,13 @@
                 return;
             }
             try {
-                const data = JSON.parse(jsonText);
+                let data = JSON.parse(jsonText);
+
+                // GPTsが配列を直接返した場合、アプリが期待するオブジェクト形式に変換する
+                if (Array.isArray(data)) {
+                    data = { questions: data };
+                }
+
                 if (data && Array.isArray(data.questions)) {
                     renderImageInputs(data.questions);
                 } else {
@@ -317,10 +326,10 @@
         }
 
         function renderImageInputs(questions) {
-            imageInputsContainer.innerHTML = ''; // コンテナをクリア
+            imageInputsContainer.innerHTML = ''; 
             questions.forEach((question, index) => {
-                const imageUrlA = question.options.A.imageUrl || '';
-                const imageUrlB = question.options.B.imageUrl || '';
+                const imageUrlA = question.options?.A?.imageUrl || '';
+                const imageUrlB = question.options?.B?.imageUrl || '';
                 const placeholderA = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Aのプレビュー';
                 const placeholderB = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Bのプレビュー';
 
@@ -373,6 +382,10 @@
             let quizData;
             try {
                 quizData = JSON.parse(jsonText);
+                // GPTsが配列を直接返した場合、アプリが期待するオブジェクト形式に変換する
+                if (Array.isArray(quizData)) {
+                    quizData = { questions: quizData };
+                }
                 if (!quizData.questions || !Array.isArray(quizData.questions)) { throw new Error("`questions`配列が必要です。"); }
             } catch (error) { showMessage("JSONの形式が正しくありません。"); console.error("JSON parse error:", error); return; }
 
@@ -391,7 +404,7 @@
             showLoading(true);
             try {
                 const quizRef = doc(db, `artifacts/default-app-id/public/data/quizzes`, quizName);
-                await setDoc(quizRef, quizData);
+                await setDoc(quizData, quizData); // 修正：第二引数もquizData
                 showMessage("クイズが正常に保存されました！", 3000);
                 setTimeout(() => showScreen('home'), 1000);
             } catch (error) {
@@ -412,9 +425,10 @@
                     const quizData = docSnap.data();
                     resetEditScreen();
                     quizNameEdit.value = quizName;
-                    jsonInput.value = JSON.stringify(quizData, null, 2); // 整形して表示
+                    // 保存されているデータ全体をそのまま表示する
+                    jsonInput.value = JSON.stringify(quizData, null, 2);
                     showScreen('edit');
-                    jsonInput.dispatchEvent(new Event('input', { bubbles: true })); // UI生成をトリガー
+                    jsonInput.dispatchEvent(new Event('input', { bubbles: true }));
                 } else {
                     showMessage("指定されたクイズが見つかりませんでした。");
                 }
@@ -434,6 +448,11 @@
                 const docSnap = await getDoc(quizRef);
                 if (docSnap.exists()) {
                     currentQuizData = docSnap.data();
+                    // 読み込んだデータがquestion配列を持っているか確認
+                    if (!currentQuizData.questions || !Array.isArray(currentQuizData.questions)) {
+                        showMessage("クイズデータの形式が正しくありません。");
+                        return;
+                    }
                     resetQuizState();
                     quizTitle.textContent = quizNameInputHome.value;
                     displayQuestion(0);
@@ -458,6 +477,7 @@
         }
         
         function displayQuestion(index) {
+            if (!currentQuizData || !currentQuizData.questions) return;
             const question = currentQuizData.questions[index];
             if (!question) return;
             questionText.textContent = question.question;
