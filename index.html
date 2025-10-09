@@ -42,7 +42,7 @@
         <!-- ===== ホーム画面 ===== -->
         <div id="home-screen" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg space-y-6">
             <h1 class="text-3xl font-bold text-center text-gray-900">画像付き2択クイズ</h1>
-            <p class="text-center text-gray-500">クイズを作成するか、クイズ名を入力して開始してください。</p>
+            <p class="text-center text-gray-500">クイズを作成するか、クイズ名を入力して開始・編集してください。</p>
             
             <div>
                 <button id="create-new-quiz-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-lg">
@@ -62,9 +62,14 @@
             <div class="space-y-4">
                 <label for="quiz-name-input-home" class="block text-sm font-medium text-gray-700">既存のクイズを読み込む</label>
                 <input type="text" id="quiz-name-input-home" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="クイズ名を入力">
-                <button id="start-quiz-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-lg">
-                    クイズを開始
-                </button>
+                <div class="flex gap-4">
+                    <button id="edit-quiz-btn" class="w-1/2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-lg">
+                        クイズを編集
+                    </button>
+                    <button id="start-quiz-btn" class="w-1/2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 text-lg">
+                        クイズを開始
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -169,7 +174,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM要素の取得 ---
@@ -186,6 +191,7 @@
         const createNewQuizBtn = document.getElementById('create-new-quiz-btn');
         const quizNameInputHome = document.getElementById('quiz-name-input-home');
         const startQuizBtn = document.getElementById('start-quiz-btn');
+        const editQuizBtn = document.getElementById('edit-quiz-btn'); // 編集ボタンを追加
         
         // 編集画面
         const quizNameEdit = document.getElementById('quiz-name-edit');
@@ -221,20 +227,15 @@
         // --- Firebase初期化 ---
         async function initializeFirebase() {
             try {
-                // ユーザーから提供されたFirebase設定情報を直接記述します
                 const firebaseConfig = {
                   apiKey: "AIzaSyDwCD9JK4dahhbNW9ChLKDR6EmWecJbZuA",
                   authDomain: "quiz-t2q.firebaseapp.com",
                   projectId: "quiz-t2q",
-                  storageBucket: "quiz-t2q.appspot.com", // firebasestorage.app ではなく .appspot.com が一般的です
+                  storageBucket: "quiz-t2q.appspot.com",
                   messagingSenderId: "1035883523561",
                   appId: "1:1035883523561:web:819c8e84be99bfc1ff2f78",
                   measurementId: "G-J6JCMZN14J"
                 };
-
-                // 実行環境用の変数はフォールバックとして残します
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -244,11 +245,7 @@
                     if (user) {
                         userId = user.uid;
                     } else {
-                         if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
                     }
                 });
             } catch (error) {
@@ -282,16 +279,14 @@
                 showScreen('edit');
             });
             startQuizBtn.addEventListener('click', loadAndStartQuiz);
+            editQuizBtn.addEventListener('click', loadQuizForEditing); // 編集ボタンのイベントリスナー
             saveQuizBtn.addEventListener('click', saveQuiz);
             backToHomeBtn.addEventListener('click', () => showScreen('home'));
             quizBackToHomeBtn.addEventListener('click', () => {
                 showScreen('home');
                 resetQuizState();
             });
-
-            // JSONテキストエリアに入力があったら動的にUIを生成
             jsonInput.addEventListener('input', handleJsonInputChange);
-
             optionABtn.addEventListener('click', () => checkAnswer('A'));
             optionBBtn.addEventListener('click', () => checkAnswer('B'));
             nextQuestionBtn.addEventListener('click', displayNextQuestion);
@@ -303,14 +298,12 @@
             imageInputsContainer.innerHTML = '<p class="text-center text-gray-500">JSONを貼り付けると、ここに画像URLの入力欄が表示されます。</p>';
         }
 
-        /** JSON入力に応じて画像URL入力欄を動的に生成する */
         function handleJsonInputChange() {
             const jsonText = jsonInput.value.trim();
             if (!jsonText) {
-                resetEditScreen();
+                imageInputsContainer.innerHTML = '<p class="text-center text-gray-500">JSONを貼り付けると、ここに画像URLの入力欄が表示されます。</p>';
                 return;
             }
-
             try {
                 const data = JSON.parse(jsonText);
                 if (data && Array.isArray(data.questions)) {
@@ -319,39 +312,39 @@
                     imageInputsContainer.innerHTML = '<p class="text-center text-red-500">JSONに`questions`配列が含まれていません。</p>';
                 }
             } catch (e) {
-                // 入力途中はパースエラーが起きるので、静かに失敗させる
                 imageInputsContainer.innerHTML = '<p class="text-center text-yellow-600">正しいJSON形式で入力してください...</p>';
             }
         }
 
-        /** 問題配列を元にHTMLを生成して表示する */
         function renderImageInputs(questions) {
             imageInputsContainer.innerHTML = ''; // コンテナをクリア
             questions.forEach((question, index) => {
+                const imageUrlA = question.options.A.imageUrl || '';
+                const imageUrlB = question.options.B.imageUrl || '';
+                const placeholderA = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Aのプレビュー';
+                const placeholderB = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Bのプレビュー';
+
                 const inputBlock = document.createElement('div');
                 inputBlock.className = 'space-y-4 p-4 border border-gray-200 rounded-lg';
                 inputBlock.innerHTML = `
                     <h3 class="font-bold text-gray-800">問題 ${index + 1}</h3>
                     <p class="text-sm text-gray-600 bg-gray-50 p-2 rounded-md">Q: ${question.question}</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- 選択肢A -->
                         <div class="space-y-2">
                             <label for="image-url-a-${index}" class="block text-sm font-medium text-gray-700">選択肢 A の画像URL</label>
-                            <input type="url" id="image-url-a-${index}" data-index="${index}" data-option="A" class="image-url-input w-full p-3 border border-gray-300 rounded-lg" placeholder="https://i.imgur.com/xxxx.png">
-                            <img id="preview-a-${index}" src="https://placehold.co/400x300/e2e8f0/94a3b8?text=Aのプレビュー" alt="選択肢Aのプレビュー" class="mt-2 w-full h-auto object-cover rounded-lg aspect-[4/3]">
+                            <input type="url" id="image-url-a-${index}" data-index="${index}" data-option="A" class="image-url-input w-full p-3 border border-gray-300 rounded-lg" placeholder="https://i.imgur.com/xxxx.png" value="${imageUrlA}">
+                            <img id="preview-a-${index}" src="${imageUrlA || placeholderA}" alt="選択肢Aのプレビュー" class="mt-2 w-full h-auto object-cover rounded-lg aspect-[4/3]">
                         </div>
-                        <!-- 選択肢B -->
                         <div class="space-y-2">
                             <label for="image-url-b-${index}" class="block text-sm font-medium text-gray-700">選択肢 B の画像URL</label>
-                            <input type="url" id="image-url-b-${index}" data-index="${index}" data-option="B" class="image-url-input w-full p-3 border border-gray-300 rounded-lg" placeholder="https://i.imgur.com/yyyy.png">
-                            <img id="preview-b-${index}" src="https://placehold.co/400x300/e2e8f0/94a3b8?text=Bのプレビュー" alt="選択肢Bのプレビュー" class="mt-2 w-full h-auto object-cover rounded-lg aspect-[4/3]">
+                            <input type="url" id="image-url-b-${index}" data-index="${index}" data-option="B" class="image-url-input w-full p-3 border border-gray-300 rounded-lg" placeholder="https://i.imgur.com/yyyy.png" value="${imageUrlB}">
+                            <img id="preview-b-${index}" src="${imageUrlB || placeholderB}" alt="選択肢Bのプレビュー" class="mt-2 w-full h-auto object-cover rounded-lg aspect-[4/3]">
                         </div>
                     </div>
                 `;
                 imageInputsContainer.appendChild(inputBlock);
             });
 
-            // 動的に生成された要素にイベントリスナーを追加
             document.querySelectorAll('.image-url-input').forEach(input => {
                 input.addEventListener('input', (e) => {
                     const index = e.target.dataset.index;
@@ -371,86 +364,73 @@
             }
         }
 
-
         // --- クイズロジック ---
-
         async function saveQuiz() {
-            if (!db) {
-                showMessage("データベースに接続されていません。");
-                return;
-            }
+            if (!db) { showMessage("データベースに接続されていません。"); return; }
             const quizName = quizNameEdit.value.trim();
             const jsonText = jsonInput.value.trim();
-
-            if (!quizName || !jsonText) {
-                showMessage("クイズ名とJSONデータを入力してください。");
-                return;
-            }
-            
+            if (!quizName || !jsonText) { showMessage("クイズ名とJSONデータを入力してください。"); return; }
             let quizData;
             try {
                 quizData = JSON.parse(jsonText);
-                if (!quizData.questions || !Array.isArray(quizData.questions)) {
-                    throw new Error("`questions`配列が必要です。");
-                }
-            } catch (error) {
-                showMessage("JSONの形式が正しくありません。");
-                console.error("JSON parse error:", error);
-                return;
-            }
+                if (!quizData.questions || !Array.isArray(quizData.questions)) { throw new Error("`questions`配列が必要です。"); }
+            } catch (error) { showMessage("JSONの形式が正しくありません。"); console.error("JSON parse error:", error); return; }
 
-            // 動的に生成された入力欄から画像URLを取得してquizDataにマージ
             let allUrlsEntered = true;
             quizData.questions.forEach((question, index) => {
                 const urlA = document.getElementById(`image-url-a-${index}`).value.trim();
                 const urlB = document.getElementById(`image-url-b-${index}`).value.trim();
-
-                if (!urlA || !urlB) {
-                    allUrlsEntered = false;
-                }
-                
-                // 元のJSONにimageUrlがなくても追加できるようにする
+                if (!urlA || !urlB) { allUrlsEntered = false; }
                 if (!question.options.A) question.options.A = {};
                 if (!question.options.B) question.options.B = {};
-                
                 question.options.A.imageUrl = urlA;
                 question.options.B.imageUrl = urlB;
             });
-
-            if (!allUrlsEntered) {
-                showMessage("すべての問題の画像URLを入力してください。");
-                return;
-            }
+            if (!allUrlsEntered) { showMessage("すべての問題の画像URLを入力してください。"); return; }
 
             showLoading(true);
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const quizRef = doc(db, `artifacts/${appId}/public/data/quizzes`, quizName);
+                const quizRef = doc(db, `artifacts/default-app-id/public/data/quizzes`, quizName);
                 await setDoc(quizRef, quizData);
                 showMessage("クイズが正常に保存されました！", 3000);
                 setTimeout(() => showScreen('home'), 1000);
             } catch (error) {
                 console.error("Firebaseへの保存に失敗しました:", error);
                 showMessage("保存に失敗しました。");
-            } finally {
-                showLoading(false);
-            }
+            } finally { showLoading(false); }
+        }
+
+        async function loadQuizForEditing() {
+            if (!db) { showMessage("データベースに接続されていません。"); return; }
+            const quizName = quizNameInputHome.value.trim();
+            if (!quizName) { showMessage("クイズ名を入力してください。"); return; }
+            showLoading(true);
+            try {
+                const quizRef = doc(db, `artifacts/default-app-id/public/data/quizzes`, quizName);
+                const docSnap = await getDoc(quizRef);
+                if (docSnap.exists()) {
+                    const quizData = docSnap.data();
+                    resetEditScreen();
+                    quizNameEdit.value = quizName;
+                    jsonInput.value = JSON.stringify(quizData, null, 2); // 整形して表示
+                    showScreen('edit');
+                    jsonInput.dispatchEvent(new Event('input', { bubbles: true })); // UI生成をトリガー
+                } else {
+                    showMessage("指定されたクイズが見つかりませんでした。");
+                }
+            } catch (error) {
+                console.error("Firebaseからの読み込みに失敗しました:", error);
+                showMessage("クイズの読み込みに失敗しました。");
+            } finally { showLoading(false); }
         }
         
         async function loadAndStartQuiz() {
-             if (!db) {
-                showMessage("データベースに接続されていません。");
-                return;
-            }
+             if (!db) { showMessage("データベースに接続されていません。"); return; }
             const quizName = quizNameInputHome.value.trim();
-            if (!quizName) {
-                showMessage("クイズ名を入力してください。");
-                return;
-            }
+            if (!quizName) { showMessage("クイズ名を入力してください。"); return; }
             showLoading(true);
             try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const quizRef = doc(db, `artifacts/${appId}/public/data/quizzes`, quizName);
+                const quizRef = doc(db, `artifacts/default-app-id/public/data/quizzes`, quizName);
                 const docSnap = await getDoc(quizRef);
                 if (docSnap.exists()) {
                     currentQuizData = docSnap.data();
@@ -464,9 +444,7 @@
             } catch (error) {
                 console.error("Firebaseからの読み込みに失敗しました:", error);
                 showMessage("クイズの読み込みに失敗しました。");
-            } finally {
-                showLoading(false);
-            }
+            } finally { showLoading(false); }
         }
         
         function resetQuizState() {
