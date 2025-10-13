@@ -422,8 +422,8 @@
             nextQuestionBtn.classList.add('hidden');
             optionABtn.disabled = false;
             optionBBtn.disabled = false;
-            optionABtn.classList.remove('border-green-500', 'border-red-500', 'border-orange-500', 'border-blue-500');
-            optionBBtn.classList.remove('border-green-500', 'border-red-500', 'border-orange-500', 'border-blue-500');
+            optionABtn.classList.remove('border-green-500', 'border-red-500', 'border-orange-500', 'border-blue-500', 'border-gray-400');
+            optionBBtn.classList.remove('border-green-500', 'border-red-500', 'border-orange-500', 'border-blue-500', 'border-gray-400');
         }
         
         function checkAnswer(selectedOption) {
@@ -441,8 +441,8 @@
             } else {
                 feedbackResult.textContent = "ざんねん…";
                 feedbackResult.className = "text-2xl font-bold text-center text-orange-500";
-                selectedBtn.classList.add('border-orange-500');
-                correctBtn.classList.add('border-blue-500');
+                selectedBtn.classList.add('border-gray-400');
+                correctBtn.classList.add('border-green-500');
             }
             feedbackExplanation.textContent = question.explanation;
             feedbackContainer.classList.remove('hidden');
@@ -472,3 +472,4 @@
     </script>
 </body>
 </html>
+
