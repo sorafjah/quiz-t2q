@@ -215,29 +215,42 @@
         // --- Firebase初期化 ---
         async function initializeFirebase() {
             try {
-                // __firebase_config が未定義または空の場合、処理を中断
-                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-                    showMessage("Firebase設定が見つかりません。保存・読込機能は無効です。", 5000);
-                    console.error("Firebase config (__firebase_config) is not defined or is empty.");
-                    
-                    // Firebaseに依存するホーム画面のボタンを無効化
-                    startQuizBtn.disabled = true;
-                    editQuizBtn.disabled = true;
-                    startQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    editQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    return; // これ以上の処理を行わない
+                let rawConfig;
+                // 環境変数からFirebaseの設定を読み込み試行
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    rawConfig = __firebase_config;
+                } else {
+                    // 環境変数がない場合、フォールバック用の設定を使用（ローカルテスト用）
+                    console.warn("Firebaseの環境設定`__firebase_config`が見つかりません。フォールバック用の接続情報を使用します。");
+                    rawConfig = {
+                        apiKey: "AIzaSyDwCD9JK4dahhbNW9ChLKDR6EmWecJbZuA",
+                        authDomain: "quiz-t2q.firebaseapp.com",
+                        projectId: "quiz-t2q",
+                        storageBucket: "quiz-t2q.appspot.com",
+                        messagingSenderId: "1035883523561",
+                        appId: "1:1035883523561:web:819c8e84be99bfc1ff2f78",
+                        measurementId: "G-J6JCMZN14J"
+                    };
                 }
 
-                const firebaseConfig = JSON.parse(__firebase_config);
+                // 設定が文字列ならJSONとしてパースし、オブジェクトならそのまま使う
+                const firebaseConfig = (typeof rawConfig === 'string')
+                    ? JSON.parse(rawConfig)
+                    : rawConfig;
+
+                if (!firebaseConfig.apiKey) {
+                    throw new Error("Firebase設定にapiKeyが含まれていません。");
+                }
                 
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                // setLogLevel('debug');
+                
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
                     } else {
+                         // 環境変数から認証トークンを読み込み試行
                          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
@@ -247,7 +260,12 @@
                 });
             } catch (error) { 
                 console.error("Firebaseの初期化に失敗しました:", error); 
-                showMessage("Firebaseへの接続に失敗しました。設定を確認してください。", 5000); 
+                // 失敗した場合、Firebase関連のボタンを無効化
+                showMessage("Firebaseへの接続に失敗しました。設定が正しくない可能性があります。", 5000); 
+                startQuizBtn.disabled = true;
+                editQuizBtn.disabled = true;
+                startQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                editQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
 
@@ -378,8 +396,21 @@
 
         function deleteQuestion(indexToDelete) {
             try {
-                let data = JSON.parse(jsonInput.value.trim());
+                let data;
+                const jsonText = jsonInput.value.trim();
+                if (jsonText) {
+                    data = JSON.parse(jsonText);
+                    if (Array.isArray(data)) data = { questions: data };
+                } else {
+                    data = { questions: [] };
+                }
+
                 if (!data.questions || !Array.isArray(data.questions)) return;
+
+                // フォームから最新のデータを取得して更新する
+                const updatedQuestions = buildQuestionsFromForm();
+                data.questions = updatedQuestions;
+                
                 data.questions.splice(indexToDelete, 1);
                 jsonInput.value = JSON.stringify(data, null, 2);
                 handleJsonInputChange(); // フォームを再描画
@@ -393,13 +424,18 @@
             try {
                 let data;
                 const jsonText = jsonInput.value.trim();
-                if (!jsonText) {
-                    data = { questions: [] };
-                } else {
+                
+                if (jsonText) {
                     data = JSON.parse(jsonText);
                     if (Array.isArray(data)) data = { questions: data };
-                    if (!data.questions) data.questions = [];
+                } else {
+                    data = { questions: [] };
                 }
+                if (!data.questions) data.questions = [];
+
+                // フォームから最新のデータを取得して既存の問題を更新
+                const existingQuestions = buildQuestionsFromForm();
+                data.questions = existingQuestions;
 
                 const newQuestion = {
                     question: "新しい問題のテキストを入力してください",
@@ -414,7 +450,7 @@
                 data.questions.push(newQuestion);
                 jsonInput.value = JSON.stringify(data, null, 2);
                 handleJsonInputChange(); // フォームを再描画
-                // 追加された新しい質問フォームまでスクロール
+                
                 setTimeout(() => {
                      editFormsContainer.lastChild?.scrollIntoView({ behavior: 'smooth' });
                 }, 100);
@@ -423,48 +459,58 @@
                 console.error("Error while adding question:", e);
             }
         }
+        
+        // フォームの現在の状態からquestions配列を構築するヘルパー関数
+        function buildQuestionsFromForm() {
+            const questions = [];
+            const formBlocks = document.querySelectorAll('.question-form-block');
+            formBlocks.forEach((_, i) => {
+                const questionText = document.getElementById(`question-text-edit-${i}`)?.value.trim() || "";
+                const optionAText = document.getElementById(`option-text-a-${i}`)?.value.trim() || "";
+                const optionBText = document.getElementById(`option-text-b-${i}`)?.value.trim() || "";
+                const answerRadio = document.querySelector(`input[name="answer-${i}"]:checked`);
+                
+                // 元のJSONからexplanationなどを引き継ぐ
+                let originalQuestion = {};
+                try {
+                    const originalData = JSON.parse(jsonInput.value.trim());
+                    originalQuestion = originalData.questions[i] || {};
+                } catch(e) { /* ignore */ }
+
+                questions.push({
+                    ...originalQuestion,
+                    question: questionText,
+                    questionImageUrl: document.getElementById(`image-url-q-${i}`)?.value.trim() || "",
+                    options: {
+                        A: { text: optionAText, imageUrl: document.getElementById(`image-url-a-${i}`)?.value.trim() || "" },
+                        B: { text: optionBText, imageUrl: document.getElementById(`image-url-b-${i}`)?.value.trim() || "" }
+                    },
+                    answer: answerRadio?.value || "A"
+                });
+            });
+            return questions;
+        }
+
 
         async function saveQuiz() {
             if (!db) { showMessage("データベースに接続されていません。"); return; }
             const quizName = quizNameEdit.value.trim();
             if (!quizName) { showMessage("クイズ名を入力してください。"); return; }
 
-            let originalQuizData;
-            try {
-                originalQuizData = JSON.parse(jsonInput.value.trim());
-                if (Array.isArray(originalQuizData)) originalQuizData = { questions: originalQuizData };
-            } catch (e) {
-                showMessage("元のJSONデータが正しくありません。"); return;
-            }
+            const newQuestions = buildQuestionsFromForm();
             
-            if (!originalQuizData.questions || originalQuizData.questions.length === 0) {
+            if (newQuestions.length === 0) {
                 showMessage("保存する問題がありません。問題を追加してください。");
                 return;
             }
 
-            const newQuestions = [];
-            const questionCount = originalQuizData.questions.length;
-
-            for (let i = 0; i < questionCount; i++) {
-                const questionText = document.getElementById(`question-text-edit-${i}`).value.trim();
-                const optionAText = document.getElementById(`option-text-a-${i}`).value.trim();
-                const optionBText = document.getElementById(`option-text-b-${i}`).value.trim();
-                const answerRadio = document.querySelector(`input[name="answer-${i}"]:checked`);
-                if (!questionText || !optionAText || !optionBText || !answerRadio) {
-                    showMessage(`問題 ${i + 1} の入力が不完全です。問題文と選択肢テキスト、正解の選択は必須です。`); return;
+            // 入力バリデーション
+            for (let i = 0; i < newQuestions.length; i++) {
+                const q = newQuestions[i];
+                if (!q.question || !q.options.A.text || !q.options.B.text) {
+                    showMessage(`問題 ${i + 1} の入力が不完全です。問題文と両方の選択肢テキストは必須です。`); 
+                    return;
                 }
-                
-                const originalQuestion = originalQuizData.questions[i] || {};
-                newQuestions.push({
-                    ...originalQuestion, // explanationなどを維持
-                    question: questionText,
-                    questionImageUrl: document.getElementById(`image-url-q-${i}`).value.trim(),
-                    options: {
-                        A: { text: optionAText, imageUrl: document.getElementById(`image-url-a-${i}`).value.trim() },
-                        B: { text: optionBText, imageUrl: document.getElementById(`image-url-b-${i}`).value.trim() }
-                    },
-                    answer: answerRadio.value
-                });
             }
 
             const finalQuizData = { questions: newQuestions };
@@ -474,6 +520,8 @@
                 const quizRef = doc(db, `artifacts/${appId}/public/data/quizzes`, quizName);
                 await setDoc(quizRef, finalQuizData);
                 showMessage("クイズが正常に保存されました！", 3000, 'success');
+                // 保存後にJSON入力欄も更新
+                jsonInput.value = JSON.stringify(finalQuizData, null, 2);
                 setTimeout(() => showScreen('home'), 1000);
             } catch (error) {
                 console.error("Firebaseへの保存に失敗しました:", error); showMessage("保存に失敗しました。");
