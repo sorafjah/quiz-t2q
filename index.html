@@ -131,27 +131,30 @@
 
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- 選択肢A -->
-                <button id="option-a-btn" data-option="A" class="option-btn flex flex-col items-center justify-center p-2 min-h-[10rem] border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
+                <button id="option-a-btn" data-option="A" class="option-btn flex flex-col items-center justify-center p-2 border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
                     <img id="option-a-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden">
                     <p id="option-a-text" class="font-semibold text-center px-2">選択肢A</p>
                 </button>
                 <!-- 選択肢B -->
-                <button id="option-b-btn" data-option="B" class="option-btn flex flex-col items-center justify-center p-2 min-h-[10rem] border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
+                <button id="option-b-btn" data-option="B" class="option-btn flex flex-col items-center justify-center p-2 border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
                     <img id="option-b-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden">
                     <p id="option-b-text" class="font-semibold text-center px-2">選択肢B</p>
                 </button>
             </div>
             
-            <div id="feedback-container" class="hidden p-4 rounded-lg space-y-2">
-                <h3 id="feedback-result" class="text-2xl font-bold text-center"></h3>
-                <p id="feedback-explanation" class="text-gray-700"></p>
+            <div id="feedback-container" class="hidden p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <div class="space-y-1">
+                        <h3 id="feedback-result" class="text-2xl font-bold"></h3>
+                        <p id="feedback-explanation" class="text-gray-700"></p>
+                    </div>
+                    <button id="next-question-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300 hidden whitespace-nowrap">
+                        次へ
+                    </button>
+                </div>
             </div>
 
-            <div class="relative mt-6 flex h-14 items-center justify-center">
-                <!-- 次の問題へボタン (中央) -->
-                <button id="next-question-btn" class="w-2/3 max-w-xs bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 hidden">
-                    次の問題へ
-                </button>
+            <div class="relative mt-6 flex h-14 items-center">
                 <!-- 終了するテキストリンク (右端) -->
                 <button id="quiz-back-to-home-btn" class="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 underline transition">
                     終了する
@@ -216,11 +219,9 @@
         async function initializeFirebase() {
             try {
                 let rawConfig;
-                // 環境変数からFirebaseの設定を読み込み試行
                 if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                     rawConfig = __firebase_config;
                 } else {
-                    // 環境変数がない場合、フォールバック用の設定を使用（ローカルテスト用）
                     console.warn("Firebaseの環境設定`__firebase_config`が見つかりません。フォールバック用の接続情報を使用します。");
                     rawConfig = {
                         apiKey: "AIzaSyDwCD9JK4dahhbNW9ChLKDR6EmWecJbZuA",
@@ -233,7 +234,6 @@
                     };
                 }
 
-                // 設定が文字列ならJSONとしてパースし、オブジェクトならそのまま使う
                 const firebaseConfig = (typeof rawConfig === 'string')
                     ? JSON.parse(rawConfig)
                     : rawConfig;
@@ -250,7 +250,6 @@
                     if (user) {
                         userId = user.uid;
                     } else {
-                         // 環境変数から認証トークンを読み込み試行
                          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
@@ -260,7 +259,6 @@
                 });
             } catch (error) { 
                 console.error("Firebaseの初期化に失敗しました:", error); 
-                // 失敗した場合、Firebase関連のボタンを無効化
                 showMessage("Firebaseへの接続に失敗しました。設定が正しくない可能性があります。", 5000); 
                 startQuizBtn.disabled = true;
                 editQuizBtn.disabled = true;
@@ -389,9 +387,10 @@
         }
         
         function updatePreviewImage(url, imgElement) {
-            const isValidUrl = url && (url.startsWith('http://') || url.startsWith('https://'));
+            const isValidUrl = !!(url && /^https?:\/\//.test(url));
             imgElement.src = isValidUrl ? url : '';
             imgElement.classList.toggle('hidden', !isValidUrl);
+            return isValidUrl;
         }
 
         function deleteQuestion(indexToDelete) {
@@ -407,13 +406,12 @@
 
                 if (!data.questions || !Array.isArray(data.questions)) return;
 
-                // フォームから最新のデータを取得して更新する
                 const updatedQuestions = buildQuestionsFromForm();
                 data.questions = updatedQuestions;
                 
                 data.questions.splice(indexToDelete, 1);
                 jsonInput.value = JSON.stringify(data, null, 2);
-                handleJsonInputChange(); // フォームを再描画
+                handleJsonInputChange(); 
             } catch (e) {
                 showMessage("JSONデータの処理中にエラーが発生しました。");
                 console.error("Error while deleting question:", e);
@@ -433,7 +431,6 @@
                 }
                 if (!data.questions) data.questions = [];
 
-                // フォームから最新のデータを取得して既存の問題を更新
                 const existingQuestions = buildQuestionsFromForm();
                 data.questions = existingQuestions;
 
@@ -449,7 +446,7 @@
                 };
                 data.questions.push(newQuestion);
                 jsonInput.value = JSON.stringify(data, null, 2);
-                handleJsonInputChange(); // フォームを再描画
+                handleJsonInputChange(); 
                 
                 setTimeout(() => {
                      editFormsContainer.lastChild?.scrollIntoView({ behavior: 'smooth' });
@@ -460,7 +457,6 @@
             }
         }
         
-        // フォームの現在の状態からquestions配列を構築するヘルパー関数
         function buildQuestionsFromForm() {
             const questions = [];
             const formBlocks = document.querySelectorAll('.question-form-block');
@@ -470,11 +466,14 @@
                 const optionBText = document.getElementById(`option-text-b-${i}`)?.value.trim() || "";
                 const answerRadio = document.querySelector(`input[name="answer-${i}"]:checked`);
                 
-                // 元のJSONからexplanationなどを引き継ぐ
                 let originalQuestion = {};
                 try {
                     const originalData = JSON.parse(jsonInput.value.trim());
-                    originalQuestion = originalData.questions[i] || {};
+                    if (Array.isArray(originalData)) {
+                         originalQuestion = { questions: originalData }.questions[i] || {};
+                    } else {
+                         originalQuestion = originalData.questions[i] || {};
+                    }
                 } catch(e) { /* ignore */ }
 
                 questions.push({
@@ -491,7 +490,6 @@
             return questions;
         }
 
-
         async function saveQuiz() {
             if (!db) { showMessage("データベースに接続されていません。"); return; }
             const quizName = quizNameEdit.value.trim();
@@ -504,7 +502,6 @@
                 return;
             }
 
-            // 入力バリデーション
             for (let i = 0; i < newQuestions.length; i++) {
                 const q = newQuestions[i];
                 if (!q.question || !q.options.A.text || !q.options.B.text) {
@@ -520,7 +517,6 @@
                 const quizRef = doc(db, `artifacts/${appId}/public/data/quizzes`, quizName);
                 await setDoc(quizRef, finalQuizData);
                 showMessage("クイズが正常に保存されました！", 3000, 'success');
-                // 保存後にJSON入力欄も更新
                 jsonInput.value = JSON.stringify(finalQuizData, null, 2);
                 setTimeout(() => showScreen('home'), 1000);
             } catch (error) {
@@ -543,7 +539,7 @@
                     quizNameEdit.value = quizName;
                     jsonInput.value = JSON.stringify(quizData, null, 2);
                     showScreen('edit');
-                    jsonInput.dispatchEvent(new Event('input', { bubbles: true })); // 編集フォームを生成
+                    jsonInput.dispatchEvent(new Event('input', { bubbles: true })); 
                 } else { showMessage("指定されたクイズが見つかりませんでした。"); }
             } catch (error) { console.error("Firebaseからの読み込みに失敗しました:", error); showMessage("クイズの読み込みに失敗しました。");
             } finally { showLoading(false); }
@@ -572,22 +568,59 @@
             } finally { showLoading(false); }
         }
         
-        function resetQuizState() { currentQuestionIndex = 0; score = 0; feedbackContainer.classList.add('hidden'); nextQuestionBtn.classList.add('hidden'); optionABtn.disabled = false; optionBBtn.disabled = false; optionsContainer.classList.remove('hidden'); }
+        function resetQuizState() { 
+            currentQuestionIndex = 0; 
+            score = 0; 
+            feedbackContainer.classList.add('hidden'); 
+            nextQuestionBtn.classList.add('hidden'); 
+            optionABtn.disabled = false; 
+            optionBBtn.disabled = false; 
+            optionsContainer.classList.remove('hidden'); 
+            // クイズ開始時にフィードバックコンテナのスタイルをリセット
+            const feedbackDiv = feedbackContainer.querySelector('div');
+            feedbackDiv.classList.add('justify-between', 'items-center');
+            feedbackDiv.classList.remove('text-center');
+        }
         
         function displayQuestion(index) {
             if (!currentQuizData || !currentQuizData.questions) return;
             const question = currentQuizData.questions[index];
             if (!question) return;
 
-            updatePreviewImage(question.questionImageUrl, questionImg);
+            // 質問画像の表示制御（コンテナも一緒に）
+            const hasQImg = !!(question.questionImageUrl && /^https?:\/\//.test(question.questionImageUrl));
+            if (hasQImg) {
+                questionImgContainer.classList.remove('hidden'); // ← コンテナを表示
+                updatePreviewImage(question.questionImageUrl, questionImg); // imgも表示
+            } else {
+                questionImgContainer.classList.add('hidden');    // ← コンテナを非表示
+                updatePreviewImage('', questionImg);             // 念のためimgも隠す
+            }
+
             questionText.textContent = question.question;
             quizProgress.textContent = `${index + 1} / ${currentQuizData.questions.length}`;
-            
-            optionAText.textContent = question.options.A.text;
-            updatePreviewImage(question.options.A.imageUrl, optionAImg);
-            optionBText.textContent = question.options.B.text;
-            updatePreviewImage(question.options.B.imageUrl, optionBImg);
 
+            // 選択肢A/B
+            optionAText.textContent = question.options.A.text;
+            // 画像の有無でボタンの高さを変更
+            if (updatePreviewImage(question.options.A.imageUrl, optionAImg)) {
+                optionABtn.classList.add('min-h-[10rem]');
+                optionABtn.classList.remove('py-6');
+            } else {
+                optionABtn.classList.remove('min-h-[10rem]');
+                optionABtn.classList.add('py-6');
+            }
+
+            optionBText.textContent = question.options.B.text;
+            if (updatePreviewImage(question.options.B.imageUrl, optionBImg)) {
+                optionBBtn.classList.add('min-h-[10rem]');
+                optionBBtn.classList.remove('py-6');
+            } else {
+                optionBBtn.classList.remove('min-h-[10rem]');
+                optionBBtn.classList.add('py-6');
+            }
+
+            // 状態リセット
             feedbackContainer.classList.add('hidden');
             nextQuestionBtn.classList.add('hidden');
             optionABtn.disabled = false;
@@ -605,12 +638,12 @@
             const correctBtn = correctOption === 'A' ? optionABtn : optionBBtn;
             if (selectedOption === correctOption) {
                 feedbackResult.textContent = "正解！";
-                feedbackResult.className = "text-2xl font-bold text-center text-green-500";
+                feedbackResult.className = "text-2xl font-bold text-green-500";
                 selectedBtn.classList.add('border-green-500');
                 score++;
             } else {
                 feedbackResult.textContent = "ざんねん…";
-                feedbackResult.className = "text-2xl font-bold text-center text-red-500";
+                feedbackResult.className = "text-2xl font-bold text-red-500";
                 selectedBtn.classList.add('border-gray-400');
                 correctBtn.classList.add('border-green-500');
             }
@@ -626,12 +659,19 @@
         }
         
         function showFinalScore() {
+            // クイズ終了時はフィードバックコンテナのレイアウトを調整
+            const feedbackDiv = feedbackContainer.querySelector('div');
+            feedbackDiv.classList.remove('justify-between', 'items-center');
+            feedbackDiv.classList.add('text-center');
+            
             questionText.textContent = `クイズ終了！あなたのスコアは...`;
             optionsContainer.classList.add('hidden');
             questionImgContainer.classList.add('hidden');
+
             feedbackResult.textContent = `${currentQuizData.questions.length}問中 ${score}問正解！`;
-            feedbackResult.className = "text-3xl font-bold text-center text-blue-600";
+            feedbackResult.className = "text-3xl font-bold text-blue-600";
             feedbackExplanation.textContent = "お疲れ様でした。「終了する」ボタンでホームに戻ります。";
+            
             feedbackContainer.classList.remove('hidden');
             nextQuestionBtn.classList.add('hidden');
         }
