@@ -30,10 +30,7 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
@@ -71,6 +68,17 @@
                     </button>
                 </div>
             </div>
+
+            <!-- 使い方ヒント -->
+            <div class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <p class="font-semibold">📌画像の貼り方（おすすめ：Googleドライブの公開フォルダ）</p>
+                <ol class="list-decimal list-inside space-y-1 mt-1">
+                  <li>ドライブで公開フォルダを作成 → 共有を「リンクを知っている全員：閲覧者」に</li>
+                  <li>iPad/スマホからそのフォルダへ画像をアップ</li>
+                  <li>画像を長押し→「リンクをコピー」して本アプリの画像URL欄に貼る（<span class="font-mono">drive.google.com/file/d/…/view</span>）</li>
+                  <li>アプリが自動で安定直リンク（<span class="font-mono">uc?export=view&id=…</span>）に変換します</li>
+                </ol>
+            </div>
         </div>
 
         <!-- ===== クイズ編集画面 ===== -->
@@ -83,12 +91,12 @@
             </div>
 
             <div class="space-y-2">
-                    <label for="json-input" class="block text-sm font-medium text-gray-700">
-                        JSONデータ (ここを元に編集フォームが生成されます)
-                        <a href="https://chatgpt.com/g/g-68e79a810ad48191b8433cf72d5ea89b-2ze-json" target="_blank" rel="noopener noreferrer" class="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
-                            (GPTsでJSONを生成)
-                        </a>
-                    </label>
+                <label for="json-input" class="block text-sm font-medium text-gray-700">
+                    JSONデータ (ここを元に編集フォームが生成されます)
+                    <a href="https://chatgpt.com/g/g-68e79a810ad48191b8433cf72d5ea89b-2ze-json" target="_blank" rel="noopener noreferrer" class="ml-2 text-sm text-blue-600 underline hover:text-blue-800">
+                        (GPTsでJSONを生成)
+                    </a>
+                </label>
                 <textarea id="json-input" rows="8" class="w-full p-3 border border-gray-300 rounded-lg font-mono text-sm" placeholder="ここにGPTsで生成したJSONを貼り付けます"></textarea>
             </div>
             
@@ -118,7 +126,7 @@
         <div id="quiz-screen" class="hidden bg-white p-6 sm:p-8 rounded-xl shadow-lg space-y-4">
             
             <div id="question-img-container" class="hidden my-4">
-                    <img id="question-img" src="" class="w-full h-auto object-contain rounded-lg aspect-video mx-auto">
+                <img id="question-img" src="" class="w-full h-auto object-contain rounded-lg aspect-video mx-auto" alt="">
             </div>
 
             <div class="bg-gray-50 p-4 rounded-lg">
@@ -128,12 +136,12 @@
             <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- 選択肢A -->
                 <button id="option-a-btn" data-option="A" class="option-btn flex flex-col items-center justify-center p-2 border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
-                    <img id="option-a-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden">
+                    <img id="option-a-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden" alt="">
                     <p id="option-a-text" class="font-semibold text-center px-2">選択肢A</p>
                 </button>
                 <!-- 選択肢B -->
                 <button id="option-b-btn" data-option="B" class="option-btn flex flex-col items-center justify-center p-2 border-4 border-transparent rounded-xl hover:border-blue-500 focus:border-blue-500 transition-all duration-300 space-y-2">
-                    <img id="option-b-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden">
+                    <img id="option-b-img" src="" class="w-full h-auto object-contain rounded-lg aspect-[4/3] hidden" alt="">
                     <p id="option-b-text" class="font-semibold text-center px-2">選択肢B</p>
                 </button>
             </div>
@@ -164,7 +172,7 @@
         </div>
 
         <!-- ===== メッセージボックス ===== -->
-        <div id="message-box" class="hidden fixed bottom-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-xl animate-pulse">
+        <div id="message-box" class="hidden fixed bottom-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-xl">
             <p id="message-text"></p>
         </div>
     </div>
@@ -173,7 +181,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM要素の取得 ---
         const screens = { home: document.getElementById('home-screen'), edit: document.getElementById('edit-screen'), quiz: document.getElementById('quiz-screen'), };
@@ -228,13 +236,8 @@
                     };
                 }
 
-                const firebaseConfig = (typeof rawConfig === 'string')
-                    ? JSON.parse(rawConfig)
-                    : rawConfig;
-
-                if (!firebaseConfig.apiKey) {
-                    throw new Error("Firebase設定にapiKeyが含まれていません。");
-                }
+                const firebaseConfig = (typeof rawConfig === 'string') ? JSON.parse(rawConfig) : rawConfig;
+                if (!firebaseConfig.apiKey) { throw new Error("Firebase設定にapiKeyが含まれていません。"); }
                 
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -244,7 +247,7 @@
                     if (user) {
                         userId = user.uid;
                     } else {
-                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
                             await signInAnonymously(auth);
@@ -271,6 +274,71 @@
             messageBox.classList.remove('hidden');
             setTimeout(() => messageBox.classList.add('hidden'), duration);
         }
+
+        // === ここから：画像URL正規化（B案・Drive運用の肝） ===
+        function normalizeImageUrl(raw) {
+          if (!raw) return { url: "", ok: false, reason: "empty" };
+          const url = raw.trim();
+
+          // GoogleフォトのページURL（埋め込めない）
+          if (/^https?:\/\/photos\.google\.com\/photo\//.test(url)) {
+            return { url: "", ok: false, reason: "google_photos_page" };
+          }
+          // Googleフォトの共有リンク（埋め込めない）
+          if (/^https?:\/\/photos\.app\.goo\.gl\//.test(url)) {
+            return { url: "", ok: false, reason: "google_photos_share_link" };
+          }
+
+          // Google Drive: /file/d/FILE_ID/...
+          let m = url.match(/https?:\/\/drive\.google\.com\/file\/d\/([^/]+)\//);
+          if (m && m[1]) {
+            return { url: `https://drive.google.com/uc?export=view&id=${m[1]}`, ok: true };
+          }
+          // Google Drive: open?id=FILE_ID
+          m = url.match(/https?:\/\/drive\.google\.com\/open\?id=([^&]+)/);
+          if (m && m[1]) {
+            return { url: `https://drive.google.com/uc?export=view&id=${m[1]}`, ok: true };
+          }
+          // Google Drive: uc?id=FILE_ID&...
+          m = url.match(/https?:\/\/drive\.google\.com\/uc\?(?:[^#]*&)?id=([^&]+)/);
+          if (m && m[1]) {
+            return { url: `https://drive.google.com/uc?export=view&id=${m[1]}`, ok: true };
+          }
+
+          // Google Photos CDN（lh3）は基本OK（任意で=w1600付与）
+          if (/^https?:\/\/lh3\.googleusercontent\.com\/[A-Za-z0-9_\-]/.test(url)) {
+            if (!/[?=]/.test(url)) return { url: url + "=w1600", ok: true };
+            return { url, ok: true };
+          }
+
+          // fife.usercontent（暫定表示はOKだが不安定）
+          if (/^https?:\/\/photos\.fife\.usercontent\.google\.com\//.test(url)) {
+            const replaced = url.replace(/\/s\d+(-no)?/i, "/s1600-no");
+            return { url: replaced, ok: true, warning: "fife_unstable" };
+          }
+
+          if (/^https?:\/\//.test(url)) return { url, ok: true }; // その他のhttp(s)
+          return { url: "", ok: false, reason: "invalid" };
+        }
+
+        // updatePreviewImage を差し替え
+        function updatePreviewImage(rawUrl, imgElement) {
+          const { url, ok, reason, warning } = normalizeImageUrl(rawUrl);
+          imgElement.src = ok ? url : "";
+          imgElement.classList.toggle('hidden', !ok);
+
+          if (!ok && reason === "google_photos_page") {
+            showMessage("GoogleフォトのページURLは画像として埋め込めません。Driveの公開フォルダのリンクを使ってください。");
+          } else if (!ok && reason === "google_photos_share_link") {
+            showMessage("Googleフォトの共有リンク（photos.app.goo.gl）は直リンクではありません。Driveの公開フォルダのリンクを使ってください。");
+          } else if (!ok && reason === "invalid") {
+            showMessage("URLが正しくありません。https:// で始まる画像URLを入力してください。");
+          } else if (warning === "fife_unstable") {
+            showMessage("Googleフォトの一時リンクです。将来表示できなくなる場合があります。Drive公開フォルダ推奨。", 4000, 'success');
+          }
+          return ok;
+        }
+        // === 画像URL正規化 ここまで ===
 
         // --- イベントリスナー設定 ---
         function setupEventListeners() {
@@ -320,7 +388,11 @@
                 formBlock.innerHTML = `
                     <div class="flex justify-between items-center">
                         <h3 class="font-bold text-gray-800">問題 ${index + 1}</h3>
-                        <button type="button" class="delete-question-btn text-sm text-gray-500 hover:text-red-600 underline" data-index="${index}">この問題を削除</button>
+                        <div class="flex gap-2">
+                            <button type="button" class="move-up-btn text-sm text-gray-500 hover:text-blue-600 underline" data-index="${index}">↑ 上へ</button>
+                            <button type="button" class="move-down-btn text-sm text-gray-500 hover:text-blue-600 underline" data-index="${index}">↓ 下へ</button>
+                            <button type="button" class="delete-question-btn text-sm text-gray-500 hover:text-red-600 underline" data-index="${index}">削除</button>
+                        </div>
                     </div>
                     <div class="space-y-2">
                         <label for="question-text-edit-${index}" class="block text-sm font-medium text-gray-700">問題文</label>
@@ -329,20 +401,24 @@
                     <div class="space-y-2">
                         <label for="image-url-q-${index}" class="block text-sm font-medium text-gray-700">問題文の画像URL (任意)</label>
                         <input type="url" id="image-url-q-${index}" data-index="${index}" data-type="Q" class="image-url-input w-full p-2 border border-gray-300 rounded-lg" placeholder="https://..." value="${qImgUrl}">
-                        <img id="preview-q-${index}" src="${qImgUrl}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-video ${qImgUrl ? '' : 'hidden'}">
+                        <img id="preview-q-${index}" src="${qImgUrl}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-video ${qImgUrl ? '' : 'hidden'}" alt="">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div id="option-container-a-${index}" class="space-y-2 p-3 rounded-lg border ${answer === 'A' ? 'bg-green-50 border-green-400' : 'bg-gray-50 border-gray-200'}">
                             <div class="flex items-center gap-x-2"><input id="answer-a-${index}" name="answer-${index}" type="radio" value="A" class="answer-radio h-4 w-4" data-index="${index}" ${answer === 'A' ? 'checked' : ''}><label for="answer-a-${index}">選択肢A (正解にする)</label></div>
-                            <label for="option-text-a-${index}" class="text-sm font-medium">テキスト</label><input type="text" id="option-text-a-${index}" class="w-full p-2 border border-gray-300 rounded-lg" value="${textA}">
-                            <label for="image-url-a-${index}" class="text-sm font-medium">画像URL (任意)</label><input type="url" id="image-url-a-${index}" data-index="${index}" data-type="A" class="image-url-input w-full p-2 border border-gray-300 rounded-lg" placeholder="https://..." value="${imgUrlA}">
-                            <img id="preview-a-${index}" src="${imgUrlA}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-[4/3] ${imgUrlA ? '' : 'hidden'}">
+                            <label for="option-text-a-${index}" class="text-sm font-medium">テキスト</label>
+                            <textarea id="option-text-a-${index}" class="w-full p-2 border border-gray-300 rounded-lg" rows="2">${textA}</textarea>
+                            <label for="image-url-a-${index}" class="text-sm font-medium">画像URL (任意)</label>
+                            <input type="url" id="image-url-a-${index}" data-index="${index}" data-type="A" class="image-url-input w-full p-2 border border-gray-300 rounded-lg" placeholder="https://..." value="${imgUrlA}">
+                            <img id="preview-a-${index}" src="${imgUrlA}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-[4/3] ${imgUrlA ? '' : 'hidden'}" alt="">
                         </div>
                         <div id="option-container-b-${index}" class="space-y-2 p-3 rounded-lg border ${answer === 'B' ? 'bg-green-50 border-green-400' : 'bg-gray-50 border-gray-200'}">
                            <div class="flex items-center gap-x-2"><input id="answer-b-${index}" name="answer-${index}" type="radio" value="B" class="answer-radio h-4 w-4" data-index="${index}" ${answer === 'B' ? 'checked' : ''}><label for="answer-b-${index}">選択肢B (正解にする)</label></div>
-                           <label for="option-text-b-${index}" class="text-sm font-medium">テキスト</label><input type="text" id="option-text-b-${index}" class="w-full p-2 border border-gray-300 rounded-lg" value="${textB}">
-                           <label for="image-url-b-${index}" class="text-sm font-medium">画像URL (任意)</label><input type="url" id="image-url-b-${index}" data-index="${index}" data-type="B" class="image-url-input w-full p-2 border border-gray-300 rounded-lg" placeholder="https://..." value="${imgUrlB}">
-                           <img id="preview-b-${index}" src="${imgUrlB}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-[4/3] ${imgUrlB ? '' : 'hidden'}">
+                           <label for="option-text-b-${index}" class="text-sm font-medium">テキスト</label>
+                           <textarea id="option-text-b-${index}" class="w-full p-2 border border-gray-300 rounded-lg" rows="2">${textB}</textarea>
+                           <label for="image-url-b-${index}" class="text-sm font-medium">画像URL (任意)</label>
+                           <input type="url" id="image-url-b-${index}" data-index="${index}" data-type="B" class="image-url-input w-full p-2 border border-gray-300 rounded-lg" placeholder="https://..." value="${imgUrlB}">
+                           <img id="preview-b-${index}" src="${imgUrlB}" class="mt-2 w-full h-auto object-contain rounded-lg aspect-[4/3] ${imgUrlB ? '' : 'hidden'}" alt="">
                         </div>
                     </div>
                 `;
@@ -352,13 +428,13 @@
         }
 
         function setupEditFormEventListeners() {
-             document.querySelectorAll('.image-url-input').forEach(input => {
+            document.querySelectorAll('.image-url-input').forEach(input => {
                 input.addEventListener('input', (e) => {
                     const previewImg = document.getElementById(`preview-${e.target.dataset.type.toLowerCase()}-${e.target.dataset.index}`);
                     updatePreviewImage(e.target.value, previewImg);
                 });
             });
-             document.querySelectorAll('.answer-radio').forEach(radio => {
+            document.querySelectorAll('.answer-radio').forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     const index = e.target.dataset.index;
                     const containerA = document.getElementById(`option-container-a-${index}`);
@@ -378,15 +454,36 @@
                     deleteQuestion(index);
                 });
             });
-        }
-        
-        function updatePreviewImage(url, imgElement) {
-            const isValidUrl = !!(url && /^https?:\/\//.test(url));
-            imgElement.src = isValidUrl ? url : '';
-            imgElement.classList.toggle('hidden', !isValidUrl);
-            return isValidUrl;
+            // 並べ替え
+            document.querySelectorAll('.move-up-btn').forEach(btn => {
+                btn.addEventListener('click', e => moveQuestion(parseInt(e.target.dataset.index, 10), -1));
+            });
+            document.querySelectorAll('.move-down-btn').forEach(btn => {
+                btn.addEventListener('click', e => moveQuestion(parseInt(e.target.dataset.index, 10), 1));
+            });
         }
 
+        function moveQuestion(index, direction) {
+            try {
+                let data = JSON.parse(jsonInput.value.trim());
+                if (Array.isArray(data)) data = { questions: data };
+                const qs = buildQuestionsFromForm();
+
+                const target = index + direction;
+                if (target < 0 || target >= qs.length) return;
+
+                const [moved] = qs.splice(index, 1);
+                qs.splice(target, 0, moved);
+
+                data.questions = qs;
+                jsonInput.value = JSON.stringify(data, null, 2);
+                handleJsonInputChange();
+            } catch (e) {
+                showMessage("並べ替え中にエラーが発生しました。");
+                console.error(e);
+            }
+        }
+        
         function deleteQuestion(indexToDelete) {
             try {
                 let data;
@@ -455,9 +552,9 @@
             const questions = [];
             const formBlocks = document.querySelectorAll('.question-form-block');
             formBlocks.forEach((_, i) => {
-                const questionText = document.getElementById(`question-text-edit-${i}`)?.value.trim() || "";
-                const optionAText = document.getElementById(`option-text-a-${i}`)?.value.trim() || "";
-                const optionBText = document.getElementById(`option-text-b-${i}`)?.value.trim() || "";
+                const questionTextVal = document.getElementById(`question-text-edit-${i}`)?.value ?? "";
+                const optionATextVal = document.getElementById(`option-text-a-${i}`)?.value ?? "";
+                const optionBTextVal = document.getElementById(`option-text-b-${i}`)?.value ?? "";
                 const answerRadio = document.querySelector(`input[name="answer-${i}"]:checked`);
                 
                 let originalQuestion = {};
@@ -472,11 +569,11 @@
 
                 questions.push({
                     ...originalQuestion,
-                    question: questionText,
+                    question: questionTextVal,
                     questionImageUrl: document.getElementById(`image-url-q-${i}`)?.value.trim() || "",
                     options: {
-                        A: { text: optionAText, imageUrl: document.getElementById(`image-url-a-${i}`)?.value.trim() || "" },
-                        B: { text: optionBText, imageUrl: document.getElementById(`image-url-b-${i}`)?.value.trim() || "" }
+                        A: { text: optionATextVal, imageUrl: document.getElementById(`image-url-a-${i}`)?.value.trim() || "" },
+                        B: { text: optionBTextVal, imageUrl: document.getElementById(`image-url-b-${i}`)?.value.trim() || "" }
                     },
                     answer: answerRadio?.value || "A"
                 });
@@ -490,12 +587,7 @@
             if (!quizName) { showMessage("クイズ名を入力してください。"); return; }
 
             const newQuestions = buildQuestionsFromForm();
-            
-            if (newQuestions.length === 0) {
-                showMessage("保存する問題がありません。問題を追加してください。");
-                return;
-            }
-
+            if (newQuestions.length === 0) { showMessage("保存する問題がありません。問題を追加してください。"); return; }
             for (let i = 0; i < newQuestions.length; i++) {
                 const q = newQuestions[i];
                 if (!q.question || !q.options.A.text || !q.options.B.text) {
@@ -571,12 +663,15 @@
             optionsContainer.classList.remove('hidden'); 
         }
         
+        // 改行を反映して表示
+        function nl2br(s) { return (s ?? "").toString().replace(/\n/g, "<br>"); }
+
         function displayQuestion(index) {
             if (!currentQuizData || !currentQuizData.questions) return;
             const question = currentQuizData.questions[index];
             if (!question) return;
 
-            // 質問画像の表示制御（コンテナも一緒に）
+            // 質問画像の表示制御
             const hasQImg = !!(question.questionImageUrl && /^https?:\/\//.test(question.questionImageUrl));
             if (hasQImg) {
                 questionImgContainer.classList.remove('hidden');
@@ -586,10 +681,11 @@
                 updatePreviewImage('', questionImg);
             }
 
-            questionText.textContent = question.question;
+            // 改行反映
+            questionText.innerHTML = nl2br(question.question);
 
             // 選択肢A/B
-            optionAText.textContent = question.options.A.text;
+            optionAText.innerHTML = nl2br(question.options.A.text);
             if (updatePreviewImage(question.options.A.imageUrl, optionAImg)) {
                 optionABtn.classList.add('min-h-[10rem]');
                 optionABtn.classList.remove('py-6');
@@ -598,7 +694,7 @@
                 optionABtn.classList.add('py-6');
             }
 
-            optionBText.textContent = question.options.B.text;
+            optionBText.innerHTML = nl2br(question.options.B.text);
             if (updatePreviewImage(question.options.B.imageUrl, optionBImg)) {
                 optionBBtn.classList.add('min-h-[10rem]');
                 optionBBtn.classList.remove('py-6');
@@ -609,7 +705,7 @@
 
             // 状態リセット
             feedbackContainer.classList.add('hidden');
-            quizBackToHomeBtn.classList.add('hidden'); // 「終了する」ボタンを隠す
+            quizBackToHomeBtn.classList.add('hidden');
             nextQuestionBtn.classList.add('hidden');
             optionABtn.disabled = false;
             optionBBtn.disabled = false;
@@ -622,8 +718,7 @@
             optionBBtn.disabled = true;
             const question = currentQuizData.questions[currentQuestionIndex];
             const correctOption = question.answer;
-            const selectedBtn = selectedOption === 'A' ? optionABtn : optionBBtn;
-            const correctBtn = correctOption === 'A' ? optionABtn : optionBBtn;
+
             if (selectedOption === correctOption) {
                 feedbackResult.textContent = "正解！";
                 feedbackResult.className = "text-2xl font-bold text-green-500";
@@ -632,10 +727,13 @@
                 feedbackResult.textContent = "ざんねん…";
                 feedbackResult.className = "text-2xl font-bold text-red-500";
             }
-            feedbackExplanation.textContent = question.explanation;
+
+            // 解説も改行反映
+            feedbackExplanation.innerHTML = nl2br(question.explanation || "");
+
             feedbackContainer.classList.remove('hidden');
             nextQuestionBtn.classList.remove('hidden');
-            quizBackToHomeBtn.classList.remove('hidden'); // 「終了する」ボタンを表示
+            quizBackToHomeBtn.classList.remove('hidden');
         }
         
         function displayNextQuestion() {
@@ -654,17 +752,12 @@
             feedbackExplanation.textContent = "お疲れ様でした。「終了する」ボタンでホームに戻ります。";
             
             feedbackContainer.classList.remove('hidden');
-            nextQuestionBtn.classList.add('hidden'); // 「次へ」は隠す
-            quizBackToHomeBtn.classList.remove('hidden'); // 「終了する」は表示
+            nextQuestionBtn.classList.add('hidden');
+            quizBackToHomeBtn.classList.remove('hidden');
         }
 
         // --- 初期化処理 ---
         window.onload = () => { initializeFirebase(); setupEventListeners(); showScreen('home'); };
-
     </script>
 </body>
 </html>
-
-
-
-
